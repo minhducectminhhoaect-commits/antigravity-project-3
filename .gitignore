@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+**/venv/
+.venv/
+
+# Large reference libraries & media
+PPT_Template_Reference_Library/
+*.mp4
+*.bin
+
+# Nested repositories & worktrees
+template/
+worktrees/
+
+# Temporary / logs
+*.tmp
+*.log
