@@ -5,7 +5,7 @@ import subprocess
 from datetime import datetime
 
 CHECK_INTERVAL_SECONDS = 5  # Quét kiểm tra bản mới mỗi 5 giây
-BRANCH = "main"             # Nhánh nhận cập nhật (main)
+BRANCH = "dev"              # Nhánh nhận cập nhật từ worktree dev (origin/dev)
 
 if sys.stdout is not None:
     try:

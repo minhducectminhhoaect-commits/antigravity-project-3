@@ -16,9 +16,8 @@ if sys.stderr is not None:
     except Exception:
         pass
 
-# Cấu hình thư mục
+# Cấu hình thư mục: CHỈ làm việc duy nhất trong worktree dev
 WORKTREE_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(WORKTREE_DIR, "..", ".."))
 LOG_FILE = os.path.join(WORKTREE_DIR, "realtime_sync.log")
 
 CHECK_INTERVAL_SECONDS = 3  # Quét thay đổi mỗi 3 giây
@@ -54,10 +53,11 @@ def get_git_status():
     return []
 
 def main():
-    log("=" * 60)
-    log("TỰ ĐỘNG ĐỒNG BỘ THỜI GIAN THỰC LÊN GITHUB KHỞI ĐỘNG")
+    log("=" * 65)
+    log("TỰ ĐỘNG ĐỒNG BỘ THỜI GIAN THỰC CHO WORKTREE DEV (ĐỘC LẬP)")
     log(f"Thư mục theo dõi: {WORKTREE_DIR}")
-    log("=" * 60)
+    log("LƯU Ý: Thư mục gốc D:\\antigravity 3 được GIỮ NGUYÊN HOÀN TOÀN")
+    log("=" * 65)
 
     trigger_time = None
     last_snapshot = None
@@ -73,7 +73,7 @@ def main():
                 if trigger_time is None or snapshot != last_snapshot:
                     trigger_time = now + DEBOUNCE_SECONDS
                     last_snapshot = snapshot
-                    log(f"⚡ Phát hiện {len(status_lines)} thay đổi trên máy:")
+                    log(f"⚡ Phát hiện {len(status_lines)} thay đổi trong worktree:")
                     for line in status_lines[:8]:
                         log(f"   -> {line}")
                     if len(status_lines) > 8:
@@ -81,11 +81,11 @@ def main():
                     log(f"   Đang chờ {DEBOUNCE_SECONDS}s gom nhóm thao tác trước khi push...")
 
                 elif now >= trigger_time:
-                    log("🚀 Bắt đầu đồng bộ lên GitHub...")
+                    log("🚀 Bắt đầu đồng bộ worktree lên GitHub (nhánh dev)...")
                     trigger_time = None
                     last_snapshot = None
 
-                    # 1. Stage tất cả (bao gồm thêm, sửa, xóa)
+                    # 1. Stage tất cả (bao gồm thêm, sửa, xóa) chỉ trong worktree dev
                     code, _, err = run_cmd("git add -A", WORKTREE_DIR)
                     if code != 0:
                         log(f"❌ Lỗi git add: {err}")
@@ -95,14 +95,14 @@ def main():
                     code, _, _ = run_cmd("git diff --cached --quiet", WORKTREE_DIR)
                     if code != 0:
                         commit_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        commit_msg = f"Realtime sync: {commit_time}"
+                        commit_msg = f"Worktree dev sync: {commit_time}"
                         code, _, err = run_cmd(f'git commit -m "{commit_msg}"', WORKTREE_DIR)
                         if code == 0:
-                            log(f"✅ Đã tạo commit: {commit_msg}")
+                            log(f"✅ Đã tạo commit trong dev: {commit_msg}")
                         else:
                             log(f"⚠️ Commit warning: {err}")
 
-                        # 3. Đẩy lên nhánh dev
+                        # 3. Đẩy lên nhánh dev trên GitHub (KHÔNG đụng tới main hay thư mục gốc)
                         log("   Đang đẩy lên nhánh dev...")
                         code, _, err = run_cmd("git push origin dev", WORKTREE_DIR)
                         if code == 0:
@@ -110,16 +110,7 @@ def main():
                         else:
                             log(f"   ⚠️ Lỗi push dev: {err}")
 
-                        # 4. Merge sang nhánh main
-                        log("   Đang đồng bộ sang nhánh main...")
-                        run_cmd("git merge dev --no-edit", ROOT_DIR)
-                        code, _, err = run_cmd("git push origin main", ROOT_DIR)
-                        if code == 0:
-                            log("   ✅ Nhánh main trên GitHub đã cập nhật thành công!")
-                        else:
-                            log(f"   ⚠️ Lỗi push main: {err}")
-
-                        log("🎉 [HOÀN TẤT] GitHub đã phản ánh chính xác 100% thay đổi trên máy!\n")
+                        log("🎉 [HOÀN TẤT] GitHub nhánh dev đã cập nhật! Thư mục gốc không bị ảnh hưởng.\n")
                     else:
                         log("ℹ️ Không có thay đổi nào cần commit.")
             else:
