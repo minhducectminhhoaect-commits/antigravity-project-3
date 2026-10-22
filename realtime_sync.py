@@ -59,37 +59,36 @@ def main():
     log(f"Thư mục theo dõi: {WORKTREE_DIR}")
     log("=" * 60)
 
-    last_change_time = None
-    pending_sync = False
+    trigger_time = None
+    last_snapshot = None
 
     while True:
         try:
             status_lines = get_git_status()
 
             if status_lines:
-                current_time = time.time()
-                if not pending_sync:
-                    pending_sync = True
-                    last_change_time = current_time
+                snapshot = "\n".join(status_lines)
+                now = time.time()
+
+                if trigger_time is None or snapshot != last_snapshot:
+                    trigger_time = now + DEBOUNCE_SECONDS
+                    last_snapshot = snapshot
                     log(f"⚡ Phát hiện {len(status_lines)} thay đổi trên máy:")
                     for line in status_lines[:8]:
                         log(f"   -> {line}")
                     if len(status_lines) > 8:
                         log(f"   -> ... và {len(status_lines) - 8} tệp khác")
-                    log(f"   Chờ {DEBOUNCE_SECONDS}s ổn định trước khi push...")
-                else:
-                    last_change_time = current_time
+                    log(f"   Đang chờ {DEBOUNCE_SECONDS}s gom nhóm thao tác trước khi push...")
 
-            if pending_sync and last_change_time:
-                elapsed = time.time() - last_change_time
-                if elapsed >= DEBOUNCE_SECONDS:
+                elif now >= trigger_time:
                     log("🚀 Bắt đầu đồng bộ lên GitHub...")
+                    trigger_time = None
+                    last_snapshot = None
 
                     # 1. Stage tất cả (bao gồm thêm, sửa, xóa)
                     code, _, err = run_cmd("git add -A", WORKTREE_DIR)
                     if code != 0:
                         log(f"❌ Lỗi git add: {err}")
-                        pending_sync = False
                         continue
 
                     # 2. Kiểm tra nếu có diff trong index
@@ -123,8 +122,9 @@ def main():
                         log("🎉 [HOÀN TẤT] GitHub đã phản ánh chính xác 100% thay đổi trên máy!\n")
                     else:
                         log("ℹ️ Không có thay đổi nào cần commit.")
-
-                    pending_sync = False
+            else:
+                trigger_time = None
+                last_snapshot = None
 
             time.sleep(CHECK_INTERVAL_SECONDS)
 
