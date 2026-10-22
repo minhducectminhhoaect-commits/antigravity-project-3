@@ -20,3 +20,4 @@ worktrees/
 # Temporary / logs
 *.tmp
 *.log
+realtime_sync.log
